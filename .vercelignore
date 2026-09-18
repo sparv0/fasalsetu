@@ -1,0 +1,9 @@
+# Never upload local secrets, databases or uploads
+.env
+.env.*
+!.env.example
+prisma/*.db
+prisma/*.db-journal
+storage/
+.next/
+node_modules/

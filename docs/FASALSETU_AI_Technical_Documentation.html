@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FASALSETU AI — Technical Documentation</title>
+<style>
+  :root { --green:#14532d; --green2:#047857; --ink:#1c1917; --muted:#57534e; --line:#e7e5e4; --soft:#f5f5f4; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari", Arial, sans-serif; color: var(--ink); line-height: 1.55; margin: 0; background: #fff; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { color: var(--green); font-size: 30px; margin: 0 0 8px; border-bottom: 4px solid var(--green2); padding-bottom: 10px; }
+  h2 { color: var(--green); font-size: 22px; margin: 36px 0 10px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  h3 { color: var(--green2); font-size: 17px; margin: 22px 0 6px; }
+  p, li { font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0 16px; font-size: 12.5px; }
+  th { background: var(--green); color: #fff; text-align: left; padding: 6px 8px; font-weight: 600; }
+  td { border-bottom: 1px solid var(--line); padding: 6px 8px; vertical-align: top; }
+  tr:nth-child(even) td { background: var(--soft); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--soft); padding: 1px 4px; border-radius: 3px; }
+  pre { background: #1c1917; color: #f5f5f4; padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.45; }
+  pre code { background: none; color: inherit; padding: 0; }
+  .mermaid { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin: 12px 0 18px; text-align: center; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 24px 0; }
+  a { color: var(--green2); }
+  @media print {
+    main { padding: 0; max-width: none; }
+    h2 { break-before: page; }
+    h2:first-of-type { break-before: auto; }
+    .mermaid, pre { break-inside: avoid; }
+    tr { break-inside: avoid; }
+    h2, h3 { break-after: avoid; }
+    thead { display: table-header-group; }
+    pre { white-space: pre-wrap; word-break: break-word; }
+  }
+  @page { size: A4; margin: 16mm 14mm; }
+</style>
+</head>
+<body>
+<main>
+<h1>FASALSETU AI — Technical Documentation</h1>
+<p><strong>SIH26132 · Strengthening Market Linkages and Price Discovery for Farmers · Team CODESURGE</strong></p>
+<p><em>Know your price. Know your buyer. Sell with confidence.</em></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Live application</td>
+<td><a href="https://fasalsetu-ai-bice.vercel.app">https://fasalsetu-ai-bice.vercel.app</a> (private — access code required)</td>
+</tr>
+<tr>
+<td>Version</td>
+<td>1.0 · September 2026</td>
+</tr>
+<tr>
+<td>Stack</td>
+<td>Next.js 16 · React 19 · TypeScript · Prisma 6 · PostgreSQL (Neon) · Vercel Blob · Google Gemini</td>
+</tr>
+<tr>
+<td>Codebase</td>
+<td>~8,700 lines of TypeScript · 17 database tables · 38 server actions · 40 automated tests</td>
+</tr>
+<tr>
+<td>Languages</td>
+<td>English and Hindi interface; English, Hindi and Marathi AI answers and voice</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>1. Executive summary</h2>
+<p>Indian farmers usually decide where to sell by looking at the <strong>highest mandi price</strong>. That number is misleading: a
+far-away mandi with a high price can leave the farmer with <em>less</em> money than a nearby one once transport, loading and
+market charges are paid. Buyers, meanwhile, struggle to find reliable, quality-graded supply, and small farmers lack the
+bargaining power and paperwork that make trade trustworthy.</p>
+<p>FASALSETU AI turns fragmented market signals into a <strong>selling decision based on net realisation</strong> — what the farmer
+actually keeps — and then carries the deal all the way through:</p>
+<ol>
+<li><strong>Digital lot</strong> with measured or AI-estimated quality.</li>
+<li><strong>SmartSell</strong> ranks every mandi <em>and</em> every live buyer offer by net ₹ per quintal, with confidence and reasons, and
+compares selling now against storing.</li>
+<li><strong>Verified buyer matching</strong>, offers, counter-offers and expiry.</li>
+<li>A <strong>SHA-256 fingerprinted digital agreement</strong> for every deal.</li>
+<li><strong>Execution</strong>: pickup, delivery confirmation and payment (mock providers), with a full audit trail.</li>
+<li><strong>Trust</strong>: grievances, admin triage and verification.</li>
+<li><strong>FPO pooling</strong> so small farmers can sell in bulk and share proceeds pro-rata.</li>
+<li><strong>Gemini-powered AI</strong> in the farmer&#39;s language — a grounded assistant, voice lot entry, photo grading and advisors.</li>
+</ol>
+<p>The core decision engine is deterministic and fully explainable; AI is layered on top to explain, extract and advise,
+never to invent numbers.</p>
+<hr>
+<h2>2. Feature overview</h2>
+<h3>2.1 Market and decision features</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>What it does</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PricePulse</td>
+<td>Latest modal/min/max prices, arrivals, 7- and 30-day change, sparklines, 7-day trend projection with confidence, distance from the user</td>
+<td><code>/markets</code></td>
+</tr>
+<tr>
+<td>NetRealise</td>
+<td>Deterministic net ₹/qt per mandi after cheapest transport plan, loading and 2% market charges</td>
+<td>lot page</td>
+</tr>
+<tr>
+<td>SmartSell</td>
+<td>Ranks mandis and live offers together; recommendation text, reasons, confidence; nearest-mandi comparison</td>
+<td>lot page</td>
+</tr>
+<tr>
+<td>Sell now vs store</td>
+<td>7- and 14-day storage scenarios with projected price band, storage cost, shrinkage and double handling; verdict requires a 2% gain and non-LOW trend confidence</td>
+<td>lot page</td>
+</tr>
+<tr>
+<td>Fayda forecast</td>
+<td>Profit scenarios from the farmer&#39;s own area, yield and cost; trend band ≤ 30 days ahead, historical P10/median/P90 beyond</td>
+<td><code>/farmer/fayda</code></td>
+</tr>
+<tr>
+<td>Digital lot &amp; quality</td>
+<td>Commodity-specific measurements graded by platform rules (live preview) or self-declared grade; photo evidence validated by file content and SHA-256 fingerprinted</td>
+<td>lot form, lot page</td>
+</tr>
+<tr>
+<td>Buyer matching</td>
+<td>Weighted 0–100 score (distance, quantity fit, quality, price vs mandi net, verification) with reasons</td>
+<td>lot page, buyer marketplace</td>
+</tr>
+<tr>
+<td>Offers</td>
+<td>Offer → counter → accept/decline/withdraw; 48 h server-side expiry; partial-quantity sales; oversized competing offers auto-closed</td>
+<td>lot page, buyer page</td>
+</tr>
+<tr>
+<td>Digital agreement</td>
+<td>Canonical terms + SHA-256 fingerprint; re-verified on every view (tampering shows MISMATCH)</td>
+<td><code>/orders/[id]/agreement</code></td>
+</tr>
+<tr>
+<td>Logistics / payment</td>
+<td>Mock providers: pickup quote, in-transit, delivered, payment initiated, payment confirmed</td>
+<td>order page</td>
+</tr>
+<tr>
+<td>Storage booking</td>
+<td>Compatible facilities by distance; capacity-checked booking and cancellation</td>
+<td>lot page</td>
+</tr>
+<tr>
+<td>Grievances</td>
+<td>Either party raises; admin resolves; closing blocked while any grievance is open</td>
+<td>order page, admin</td>
+</tr>
+<tr>
+<td>FPO pooling</td>
+<td>Pool members&#39; open lots of one commodity; grade = lowest contributed grade; pro-rata payouts</td>
+<td><code>/fpo</code></td>
+</tr>
+<tr>
+<td>Field Nigrani (IoT)</td>
+<td>Device registration (key shown once, stored hashed), HTTPS ingestion API, 48 h dashboards, comfort-band alerts feeding SmartSell</td>
+<td><code>/farmer/field</code></td>
+</tr>
+<tr>
+<td>Scheme recommender</td>
+<td>Rule-based suggestions with reasons and official links — explicitly not an eligibility decision</td>
+<td><code>/farmer/schemes</code></td>
+</tr>
+<tr>
+<td>Admin</td>
+<td>Verification, grievances, all orders, CSV market-data import with row-level errors, data-source registry</td>
+<td><code>/admin</code></td>
+</tr>
+</tbody></table>
+<h3>2.2 AI features (Google Gemini)</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Kisan Sahayak chat</td>
+<td>Role-aware assistant grounded in the user&#39;s own lots, offers, orders, sensor alerts and market data; voice input and read-aloud</td>
+</tr>
+<tr>
+<td>Explain SmartSell</td>
+<td>Plain-language explanation of the recommendation in the chosen language</td>
+</tr>
+<tr>
+<td>Voice/text lot entry</td>
+<td>&quot;120 quintal kanda kal kaata, size 50mm&quot; → commodity, quantity (unit conversion), date, grade or measurements</td>
+</tr>
+<tr>
+<td>AI photo grading</td>
+<td>Vision model estimates quality parameters; graded with the platform&#39;s own rules; flags wrong-commodity photos; shown to buyers</td>
+</tr>
+<tr>
+<td>Negotiation copilot</td>
+<td>Accept / counter (with a price) / reject / wait for each offer</td>
+</tr>
+<tr>
+<td>Fair-offer advisor</td>
+<td>For buyers: offer range between the seller&#39;s mandi floor and the buyer&#39;s landed cost</td>
+</tr>
+<tr>
+<td>Market brief</td>
+<td>Four-bullet summary per commodity</td>
+</tr>
+<tr>
+<td>Fayda explanation</td>
+<td>Explains profit scenarios, break-even and how to improve margin</td>
+</tr>
+<tr>
+<td>Storage &amp; field advisory</td>
+<td>Practical actions from sensor readings</td>
+</tr>
+<tr>
+<td>Scheme explainer</td>
+<td>Which suggestions to check first and how</td>
+</tr>
+<tr>
+<td>FPO pooling advisor</td>
+<td>Which lots to pool, grade trade-offs, where to sell</td>
+</tr>
+<tr>
+<td>Grievance triage (admin)</td>
+<td>Severity, likely cause, suggested resolution, evidence to request</td>
+</tr>
+</tbody></table>
+<h3>2.3 Language support</h3>
+<p>The whole interface switches between <strong>English and Hindi</strong> from the top bar — every page, label, status, generated
+recommendation, match reason, scheme description and server message. AI answers, voice input and read-aloud work in
+<strong>English, Hindi and Marathi</strong>; the Marathi setting keeps the interface in English.</p>
+<hr>
+<h2>3. Users and journeys</h2>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Can do</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Farmer</td>
+<td>Create lots, see SmartSell, upload photos, book storage, answer and counter offers, confirm pickup and payment, raise grievances, use Fayda, Field Nigrani, Schemes and the assistant</td>
+</tr>
+<tr>
+<td>FPO</td>
+<td>Pool member lots, sell pooled lots like any lot, see member payouts, get pooling advice</td>
+</tr>
+<tr>
+<td>Buyer</td>
+<td>Post demand, browse and filter lots with match scores, send offers, accept counters, book pickup, confirm delivery, pay, raise grievances</td>
+</tr>
+<tr>
+<td>Admin</td>
+<td>Verify users, triage and resolve grievances, import market data, view every order and the platform audit trail</td>
+</tr>
+</tbody></table>
+<h3>3.1 Judge demo (about 6 minutes)</h3>
+<ol>
+<li>Enter the access code → <strong>Judge quick start</strong> → Ramesh Patil&#39;s onion lot opens on SmartSell. Switch to <strong>हिं</strong> to show
+the Hindi interface.</li>
+<li>Walk the lot page: recommendation with reasons, sensor alert, quality evidence, sell-vs-store table, all options
+ranked by net ₹/qt, buyers looking for onion.</li>
+<li>Switch user → <strong>Nashik Fresh Produce Co</strong> → offer ₹1,880 × 100 qt. Switch → <strong>FarmDirect Exports</strong> → offer
+₹1,900 × 120 qt.</li>
+<li>Switch → <strong>Ramesh</strong>: SmartSell now weighs the offers against mandis. Counter Nashik Fresh at ₹1,950.</li>
+<li>Switch → <strong>Nashik Fresh</strong>: accept the counter → order created, 20 qt remain, FarmDirect&#39;s oversized offer closes.
+Open <strong>View digital agreement</strong> (fingerprint intact).</li>
+<li>Buyer: book pickup → picked up → confirm delivery → pay; raise a grievance. Farmer: confirm payment; closing is
+blocked until the grievance is resolved.</li>
+<li>Switch → <strong>Platform Admin</strong>: triage and resolve; show verification, data sources and CSV import.</li>
+<li>Switch → <strong>Nashik Kanda Producers FPO</strong>: pool member lots and show the payout split.</li>
+</ol>
+<hr>
+<h2>4. System architecture</h2>
+<div class="mermaid">flowchart LR
+  subgraph Clients
+    F[Farmer / FPO<br/>mobile browser]
+    B[Buyer]
+    A[Admin]
+    D[ESP32 sensor]
+  end
+  subgraph Vercel["Vercel · region sin1"]
+    P[Proxy<br/>access-code gate]
+    subgraph Next["Next.js 16 App Router"]
+      RSC[Server Components<br/>pages]
+      SA[Server Actions<br/>mutations]
+      RH[Route Handlers<br/>health · ready · IoT · media]
+    end
+    ENG[Domain engine<br/>pure TypeScript]
+    AI[AI layer<br/>grounding + guard rails]
+  end
+  PG[(Neon PostgreSQL<br/>Singapore)]
+  BL[(Vercel Blob<br/>private photos)]
+  GM[Google Gemini API]
+  F & B & A --> P --> RSC & SA
+  D --> RH
+  RSC & SA --> ENG
+  SA --> AI --> GM
+  RSC & SA & RH --> PG
+  SA & RH --> BL</div><p><strong>Request flow.</strong> Every request first hits the <strong>proxy</strong> (<code>src/proxy.ts</code>). Unless it carries the access-code cookie it
+is redirected to <code>/access</code> (pages) or refused with 401 (APIs, actions, media). Pages are <strong>React Server Components</strong>
+that query the database directly and call the pure <strong>engine</strong> for all calculations. Every mutation is a <strong>Server
+Action</strong> that authenticates the user, authorises by role <em>and</em> ownership, validates input with zod, applies a guarded
+state transition inside a transaction, writes an audit event, and revalidates the UI. AI features are server actions
+that assemble grounded context and call Gemini; the key never reaches the browser.</p>
+<h3>4.1 Technology stack</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Choice</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Framework</td>
+<td>Next.js 16 (App Router, Server Actions, Proxy)</td>
+<td>One codebase for UI and backend; no separate API tier to secure</td>
+</tr>
+<tr>
+<td>UI</td>
+<td>React 19, Tailwind CSS 4</td>
+<td>Server-rendered, mobile-first, progressive enhancement</td>
+</tr>
+<tr>
+<td>Language</td>
+<td>TypeScript 5 (strict)</td>
+<td>End-to-end types from database to UI</td>
+</tr>
+<tr>
+<td>Validation</td>
+<td>zod 4</td>
+<td>Every form and API payload validated on the server</td>
+</tr>
+<tr>
+<td>ORM</td>
+<td>Prisma 6</td>
+<td>Typed queries, transactions, schema push</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>PostgreSQL on Neon (Singapore)</td>
+<td>Serverless Postgres close to India; pooled + direct connections</td>
+</tr>
+<tr>
+<td>File storage</td>
+<td>Vercel Blob (private)</td>
+<td>Photos never publicly addressable</td>
+</tr>
+<tr>
+<td>AI</td>
+<td>Google Gemini (default <code>gemini-2.5-flash</code>, auto-fallback)</td>
+<td>Multilingual, vision, structured JSON output</td>
+</tr>
+<tr>
+<td>Voice</td>
+<td>Browser Web Speech API</td>
+<td>Speech-to-text and text-to-speech in hi-IN, mr-IN, en-IN with no extra service</td>
+</tr>
+<tr>
+<td>Hosting</td>
+<td>Vercel (functions in <code>sin1</code>)</td>
+<td>Zero-ops deploys, encrypted environment variables</td>
+</tr>
+<tr>
+<td>Tests</td>
+<td>Vitest</td>
+<td>Fast unit tests for the engine, i18n and message catalogue</td>
+</tr>
+</tbody></table>
+<h3>4.2 Code structure</h3>
+<pre><code class="language-text">src/
+  proxy.ts                 access-code gate for every request
+  app/                     pages (Server Components) and route handlers
+    login/ access/         demo login, access code
+    farmer/                dashboard, lots/[id], fayda, field, schemes
+    fpo/ buyer/ admin/     role dashboards
+    markets/               PricePulse
+    orders/[id]/           order execution + agreement
+    assistant/             Kisan Sahayak chat
+    api/                   health, ready, iot/readings, sample-prices
+    media/[id]/            access-checked photo delivery
+  components/              UI kit, forms, i18n provider, AI panels, voice
+  lib/
+    engine/                PURE domain logic (no I/O) + unit tests
+      logistics.ts         distance and cheapest vehicle plan
+      forecast.ts          least-squares trend, projection band
+      netRealise.ts        NetRealise, SmartSell options, sell-vs-store
+      matching.ts          buyer match score
+      quality.ts           grading rules
+      states.ts            offer / order / lot state machines
+      agreement.ts         canonical JSON + SHA-256
+      fayda.ts, schemes.ts, priceCsv.ts, config.ts
+    actions.ts             all business server actions
+    ai/                    Gemini client, grounding context, AI actions, photo grading
+    decision.ts, match.ts  engine + database orchestration
+    marketplace.ts         expiry, pool payouts, IoT summaries, data sources
+    i18n.ts, lang.ts       localisation helpers
+    actionMessages.ts      Hindi catalogue for server messages
+    session.ts, access.ts  demo session and access gate
+    media.ts               upload validation, Blob/local storage
+prisma/
+  schema.prisma            17 models
+  seed.ts                  deterministic demo data
+</code></pre>
+<hr>
+<h2>5. Data model</h2>
+<p><strong>Marketplace and trust</strong></p>
+<div class="mermaid">erDiagram
+  User ||--o{ Lot : sells
+  User ||--o{ BuyerDemand : posts
+  User ||--o{ Offer : makes
+  Lot ||--o{ Offer : receives
+  Offer ||--o| Order : becomes
+  Lot ||--o{ Order : "sold via"
+  Order ||--o| LogisticsBooking : pickup
+  Order ||--o| Payment : payment
+  Order ||--o{ Grievance : disputes
+  User ||--o{ AuditEvent : acts</div><p><strong>Market data, quality, storage, pooling and sensors</strong></p>
+<div class="mermaid">erDiagram
+  Market ||--o{ PriceRecord : reports
+  Lot ||--o{ LotMedia : "quality photos"
+  Lot ||--o{ PoolContribution : "pool parts"
+  Lot ||--o| PoolContribution : "contributed to"
+  StorageFacility ||--o{ StorageBooking : holds
+  Lot ||--o{ StorageBooking : stored
+  User ||--o{ Device : owns
+  Device ||--o{ IotReading : sends
+  User |o--o{ User : "FPO members"</div><table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Purpose</th>
+<th>Key fields</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>User</td>
+<td>Farmer, FPO, buyer or admin</td>
+<td>role, district, verified, fpoId, landAcres, socialCategory</td>
+</tr>
+<tr>
+<td>Market</td>
+<td>APMC mandi</td>
+<td>name, district, lat/lng</td>
+</tr>
+<tr>
+<td>PriceRecord</td>
+<td>Daily price observation</td>
+<td>commodity, date, min/modal/max, arrivalsQt, source (DEMO/SAMPLE or CSV_IMPORT)</td>
+</tr>
+<tr>
+<td>Lot</td>
+<td>Produce offered for sale</td>
+<td>commodity, quantityQt, availableQt, qualityGrade, qualityParams, status, isPool</td>
+</tr>
+<tr>
+<td>LotMedia</td>
+<td>Quality photo</td>
+<td>mimeType, sizeBytes, sha256, storedAs, aiAssessment</td>
+</tr>
+<tr>
+<td>PoolContribution</td>
+<td>Member lot inside an FPO pool</td>
+<td>poolLotId, memberLotId, farmerId, quantityQt</td>
+</tr>
+<tr>
+<td>BuyerDemand</td>
+<td>What a buyer wants</td>
+<td>commodity, quantityQt, qualityMin, pricePerQt, deliveryDays</td>
+</tr>
+<tr>
+<td>Offer</td>
+<td>Buyer&#39;s bid on a lot</td>
+<td>pricePerQt, counterPricePerQt, quantityQt, matchScore, status, expiresAt</td>
+</tr>
+<tr>
+<td>Order</td>
+<td>Accepted deal</td>
+<td>agreedPrice, quantityQt, agreementTerms, agreementHash, status</td>
+</tr>
+<tr>
+<td>LogisticsBooking</td>
+<td>Pickup (mock provider)</td>
+<td>vehicle, trips, distanceKm, quoteCost, status</td>
+</tr>
+<tr>
+<td>Payment</td>
+<td>Payment (mock provider)</td>
+<td>amount, reference, status</td>
+</tr>
+<tr>
+<td>StorageFacility / StorageBooking</td>
+<td>Warehouses and reservations</td>
+<td>capacity, availableQt, costPerQtPerDay / quantity, days, status</td>
+</tr>
+<tr>
+<td>Grievance</td>
+<td>Dispute on an order</td>
+<td>category, description, status, resolutionNote</td>
+</tr>
+<tr>
+<td>Device / IotReading</td>
+<td>Field Nigrani sensors</td>
+<td>keyHash, keyHint, purpose / metric, value, recordedAt</td>
+</tr>
+<tr>
+<td>AuditEvent</td>
+<td>Immutable-style activity log</td>
+<td>action, detail, actor, lot/offer/order links</td>
+</tr>
+</tbody></table>
+<p>Indexes cover the hot paths: prices by commodity and date, lots by status and commodity, offers by lot/buyer and status,
+IoT readings by device, metric and time, and audit events by order and lot.</p>
+<hr>
+<h2>6. Decision engine</h2>
+<p>All engine code lives in <code>src/lib/engine/</code> and performs no I/O, so every rule below is unit-tested.</p>
+<h3>6.1 NetRealise</h3>
+<p>For a lot of <em>Q</em> quintals and a mandi with modal price <em>P</em>:</p>
+<pre><code class="language-text">distance     = max(8 km, straight-line km × 1.25 road factor)
+transport    = cheapest single-vehicle plan:
+               trips × max(₹800, rate/km × distance) + ₹12/qt loading
+               vehicles: Tempo 25 qt ₹22/km · Mini truck 70 qt ₹32/km
+                         Truck 100 qt ₹42/km · Large truck 160 qt ₹55/km
+charges      = 2% × P × Q
+net total    = P × Q − transport − charges
+net per qt   = net total ÷ Q
+</code></pre>
+<p>A buyer&#39;s farm-gate offer is worth price × quantity with no deductions, because the buyer pays for pickup.</p>
+<p><strong>Confidence.</strong> HIGH when the price is at most 1 day old with ≥100 qt arrivals; MEDIUM when at most 3 days old with ≥30
+qt; otherwise LOW. If the last seven modal prices vary by more than 8% (coefficient of variation), confidence drops one
+level.</p>
+<h3>6.2 SmartSell</h3>
+<p>SmartSell merges mandi options and live offers, sorts by net ₹/qt and explains the winner: price and freshness,
+transport plan, charges, the margin over the runner-up, and what the nearest mandi would pay. With no market data it
+says so instead of estimating.</p>
+<h3>6.3 Sell now or store</h3>
+<p>For 7 and 14 days, and for every mandi with a trend, the engine projects the price, then subtracts storage
+(₹/qt/day × days + ₹8/qt handling), shrinkage (onion 0.2%/day, soybean 0.02%/day, wheat 0.01%/day), transport
+farm → store → mandi, and charges. <strong>Store</strong> is recommended only if the best scenario beats selling now by at least 2%
+<em>and</em> the trend confidence is not LOW.</p>
+<h3>6.4 Price trend</h3>
+<p>Ordinary least squares over the last 30 days of modal prices. The projection band is ±1.64 × residual standard deviation
+(about 90%). Confidence is HIGH with ≥21 points and R² ≥ 0.5, MEDIUM with ≥14 points and R² ≥ 0.2, otherwise LOW.
+Fayda uses the trend only up to 30 days ahead; beyond that it uses the 90-day P10 / median / P90.</p>
+<h3>6.5 Buyer match score (0–100)</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Weight</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Distance</td>
+<td>30</td>
+<td>Linear from 30 at 0 km to 0 at 300 km</td>
+</tr>
+<tr>
+<td>Quantity fit</td>
+<td>25</td>
+<td>min(lot, demand) ÷ max(lot, demand)</td>
+</tr>
+<tr>
+<td>Quality</td>
+<td>20</td>
+<td>Full if lot grade ≥ buyer&#39;s minimum, else 0</td>
+</tr>
+<tr>
+<td>Price</td>
+<td>15</td>
+<td>Full if the indicative price ≥ farmer&#39;s best mandi net, falling to 0 at 15% below</td>
+</tr>
+<tr>
+<td>Verification</td>
+<td>10</td>
+<td>Buyer verified</td>
+</tr>
+</tbody></table>
+<h3>6.6 Quality grading</h3>
+<table>
+<thead>
+<tr>
+<th>Commodity</th>
+<th>PREMIUM</th>
+<th>A</th>
+<th>B</th>
+<th>Else</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Onion</td>
+<td>bulb ≥ 55 mm, damaged ≤ 2%, sprouted ≤ 1%</td>
+<td>≥ 45 mm, ≤ 5%, ≤ 3%</td>
+<td>≥ 35 mm, ≤ 10%, ≤ 6%</td>
+<td>C</td>
+</tr>
+<tr>
+<td>Soybean</td>
+<td>moisture ≤ 10%, foreign matter ≤ 0.5%, damaged ≤ 1%</td>
+<td>≤ 12%, ≤ 1%, ≤ 3%</td>
+<td>≤ 14%, ≤ 2%, ≤ 6%</td>
+<td>C</td>
+</tr>
+<tr>
+<td>Wheat</td>
+<td>moisture ≤ 10%, foreign matter ≤ 0.25%, broken ≤ 1%</td>
+<td>≤ 12%, ≤ 0.75%, ≤ 3%</td>
+<td>≤ 14%, ≤ 1.5%, ≤ 6%</td>
+<td>C</td>
+</tr>
+</tbody></table>
+<p>The grade is the strictest band every parameter meets; the UI reports which parameters held it back. A pooled lot takes
+the lowest contributed grade.</p>
+<hr>
+<h2>7. Transactions, integrity and audit</h2>
+<div class="mermaid">stateDiagram-v2
+  [*] --> PENDING: buyer sends offer
+  PENDING --> COUNTERED: farmer counters
+  PENDING --> ACCEPTED: farmer accepts
+  COUNTERED --> ACCEPTED: buyer accepts counter
+  PENDING --> REJECTED: farmer rejects
+  COUNTERED --> REJECTED: buyer declines
+  PENDING --> WITHDRAWN: buyer withdraws
+  PENDING --> EXPIRED: 48 h without reply
+  COUNTERED --> EXPIRED: 48 h without reply
+  ACCEPTED --> [*]: order created</div><div class="mermaid">stateDiagram-v2
+  [*] --> CREATED
+  CREATED --> LOGISTICS_BOOKED: buyer books pickup
+  LOGISTICS_BOOKED --> IN_TRANSIT: either party marks picked up
+  IN_TRANSIT --> DELIVERED: buyer confirms delivery
+  DELIVERED --> PAYMENT_INITIATED: buyer pays
+  PAYMENT_INITIATED --> PAID: farmer confirms receipt
+  PAID --> CLOSED: either party closes (no open grievances)</div><ul>
+<li><strong>Race safety.</strong> Every transition is a guarded <code>updateMany</code> whose <code>WHERE</code> includes the expected current state (and,
+for lots, the expected available quantity). If another request got there first, zero rows change and the user sees
+&quot;refresh the page&quot; instead of a double sale.</li>
+<li><strong>Partial sales.</strong> Accepting an offer reduces <code>availableQt</code>; the lot becomes PARTIALLY_SOLD or SOLD, and other open
+offers larger than the remainder close automatically.</li>
+<li><strong>Agreement.</strong> On acceptance the platform records canonical terms (seller, buyer, commodity, grade and basis,
+quantity, price, total, delivery, payment and dispute terms, timestamp) as key-sorted JSON and stores its SHA-256
+fingerprint. The agreement page recomputes the hash on every view, so any later edit shows <strong>MISMATCH</strong>. This is a
+platform record, not a registered legal contract; no blockchain is used.</li>
+<li><strong>Audit trail.</strong> Every business action writes an <code>AuditEvent</code>, shown per lot, per order and platform-wide.</li>
+<li><strong>Pool payouts.</strong> Settled and pending order value from a pooled lot is split by each member&#39;s contributed quantity.</li>
+</ul>
+<hr>
+<h2>8. AI layer</h2>
+<div class="mermaid">sequenceDiagram
+  participant U as User (browser)
+  participant S as Server Action
+  participant C as Context builder
+  participant G as Gemini API
+  U->>S: question / photo / button
+  S->>S: auth + ownership + quota check
+  S->>C: user's lots, offers, orders, alerts, market snapshot
+  C-->>S: compact factual context
+  S->>G: system rules + context + language instruction (+ JSON schema)
+  G-->>S: answer (text or structured JSON)
+  S->>S: validate, clamp numbers, re-grade with platform rules
+  S-->>U: answer + read-aloud, labelled as AI-generated</div><ul>
+<li><strong>Grounding.</strong> Every prompt carries a compact snapshot of the user&#39;s own data and the market board, with an
+instruction to use only those figures, never to invent numbers, and to say when data does not cover a question.
+Market prices are always described as DEMO/SAMPLE.</li>
+<li><strong>Structured outputs.</strong> Extraction, photo grading, negotiation advice and triage use JSON schemas; results are
+validated and clamped to valid ranges. Photo estimates are graded by the same rules as measured lots, and a
+wrong-commodity photo gets no grade.</li>
+<li><strong>Resilience.</strong> If the configured model is unavailable the client discovers an available Flash model; if a model
+rejects the schema it retries with the schema in the prompt; requests time out after 45 s; every failure becomes a
+clear, localised message.</li>
+<li><strong>Protection of the key.</strong> The key lives only in server environment variables. Beyond the site-wide access code, AI
+calls are limited to 15 per minute per user and 300 per hour overall.</li>
+<li><strong>Voice.</strong> Speech-to-text and read-aloud use the browser&#39;s Web Speech API in <code>en-IN</code>, <code>hi-IN</code> and <code>mr-IN</code>.</li>
+</ul>
+<hr>
+<h2>9. Localisation</h2>
+<ul>
+<li>Interface strings are written inline as <code>t(&quot;English&quot;, &quot;हिंदी&quot;)</code>, so each screen reads naturally in one place; server
+pages use <code>getT()</code>, client components use <code>useT()</code> from a context provider set in the root layout.</li>
+<li>The language is a cookie (<code>fs_lang</code>) set by the EN / हिं / मरा toggle, so server rendering, AI prompts and voice all
+agree.</li>
+<li>The decision engine takes a language parameter: numbers are computed once; only the explanatory sentences change.</li>
+<li>Server messages are built in English and translated at the edge by a catalogue (<code>actionMessages.ts</code>) with exact
+strings and patterns for messages containing numbers and names. A unit test scans the source for every fixed
+message and fails if any lacks a Hindi version.</li>
+<li>Proper nouns (mandi names, people) stay as written. The recorded agreement terms stay in English because the
+fingerprint covers them; the Hindi page shows a display translation.</li>
+</ul>
+<hr>
+<h2>10. Security</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Access</td>
+<td>Site-wide access code checked in the proxy; cookie stores a SHA-256 hash of the code, httpOnly, secure, 30 days; 8 guesses per 10 minutes per IP; constant-time comparison</td>
+</tr>
+<tr>
+<td>Authorisation</td>
+<td>Every server action re-checks the session, the role and ownership of the lot, offer or order; pages do the same</td>
+</tr>
+<tr>
+<td>Input validation</td>
+<td>zod schemas on every form; numeric ranges, enums, date sanity; CSV rows validated individually</td>
+</tr>
+<tr>
+<td>State integrity</td>
+<td>Guarded transitions inside transactions; idempotent under double clicks</td>
+</tr>
+<tr>
+<td>Uploads</td>
+<td>Size limit 3 MB, 4 per lot; type detected from file bytes (JPEG/PNG/WebP), not the file name; stored in a private Blob store; served only through an access- and login-checked route with <code>nosniff</code> and a restrictive CSP</td>
+</tr>
+<tr>
+<td>Devices</td>
+<td>Per-device random keys shown once and stored as SHA-256 hashes; payload validation; 30 requests/min per device</td>
+</tr>
+<tr>
+<td>Secrets</td>
+<td>Gemini key, database URLs, Blob token and access code are encrypted Vercel environment variables; <code>.env*</code> files are excluded from uploads; nothing secret is sent to the browser</td>
+</tr>
+<tr>
+<td>CSRF</td>
+<td>Next.js Server Actions compare Origin with Host</td>
+</tr>
+<tr>
+<td>Audit</td>
+<td>Business actions logged with actor and timestamp</td>
+</tr>
+</tbody></table>
+<p><strong>Known limits.</strong> Login inside the gate is a demo account picker by design (anyone with the code can act as any demo
+user, including admin). Rate limits are in-memory per server instance, so on Vercel they are best-effort; the access code
+is the real barrier. Production would add OTP login and a shared rate-limit store.</p>
+<hr>
+<h2>11. Interfaces</h2>
+<h3>11.1 HTTP endpoints</h3>
+<table>
+<thead>
+<tr>
+<th>Method &amp; path</th>
+<th>Access</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>GET /api/health</code></td>
+<td>open</td>
+<td>Process liveness</td>
+</tr>
+<tr>
+<td><code>GET /api/ready</code></td>
+<td>access code</td>
+<td>Database round-trip and latest market record</td>
+</tr>
+<tr>
+<td><code>POST /api/iot/readings</code></td>
+<td>device key (<code>x-device-key</code>)</td>
+<td>Ingest up to 100 readings: <code>temperature_c</code>, <code>humidity_pct</code>, <code>soil_moisture_pct</code></td>
+</tr>
+<tr>
+<td><code>GET /api/sample-prices</code></td>
+<td>admin</td>
+<td>Sample CSV for the importer</td>
+</tr>
+<tr>
+<td><code>GET /media/[id]</code></td>
+<td>access code + login</td>
+<td>Lot photo</td>
+</tr>
+</tbody></table>
+<p>Example device call:</p>
+<pre><code class="language-bash">curl -X POST https://fasalsetu-ai-bice.vercel.app/api/iot/readings \
+  -H &#39;x-device-key: &lt;device key&gt;&#39; -H &#39;content-type: application/json&#39; \
+  -d &#39;{&quot;readings&quot;:[{&quot;metric&quot;:&quot;humidity_pct&quot;,&quot;value&quot;:68.5},{&quot;metric&quot;:&quot;temperature_c&quot;,&quot;value&quot;:27.9}]}&#39;
+</code></pre>
+<h3>11.2 Server actions</h3>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Session</td>
+<td><code>loginAs</code>, <code>logout</code>, <code>quickStart</code>, <code>unlock</code></td>
+</tr>
+<tr>
+<td>Lots</td>
+<td><code>createLot</code>, <code>withdrawLot</code>, <code>uploadLotMedia</code>, <code>createPool</code>, <code>bookStorage</code>, <code>cancelStorage</code></td>
+</tr>
+<tr>
+<td>Demand &amp; offers</td>
+<td><code>createDemand</code>, <code>deleteDemand</code>, <code>sendOffer</code>, <code>withdrawOffer</code>, <code>counterOffer</code>, <code>acceptOffer</code>, <code>acceptCounter</code>, <code>rejectOffer</code>, <code>rejectCounter</code></td>
+</tr>
+<tr>
+<td>Orders &amp; trust</td>
+<td><code>runOrderAction</code> (six steps), <code>createGrievance</code>, <code>resolveGrievance</code></td>
+</tr>
+<tr>
+<td>Profile, IoT, admin</td>
+<td><code>updateProfile</code>, <code>registerDevice</code>, <code>setVerified</code>, <code>importPrices</code></td>
+</tr>
+<tr>
+<td>AI</td>
+<td><code>askAssistant</code>, <code>explainLot</code>, <code>parseLotText</code>, <code>analysePhoto</code>, <code>adviseOffer</code>, <code>adviseBuy</code>, <code>marketBrief</code>, <code>explainFayda</code>, <code>storageAdvice</code>, <code>explainSchemes</code>, <code>fpoAdvice</code>, <code>triageGrievance</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>12. Deployment and operations</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Application</td>
+<td>Vercel project <code>stringly/fasalsetu-ai</code>, functions in <code>sin1</code> (Singapore)</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>Neon PostgreSQL (free plan), Singapore, via the Vercel Marketplace</td>
+</tr>
+<tr>
+<td>Photos</td>
+<td>Vercel Blob store <code>fasalsetu-media</code>, private, Singapore</td>
+</tr>
+<tr>
+<td>AI</td>
+<td>Google Gemini API</td>
+</tr>
+</tbody></table>
+<p><strong>Environment variables:</strong> <code>DATABASE_URL</code>, <code>DATABASE_URL_UNPOOLED</code>, <code>BLOB_READ_WRITE_TOKEN</code> (added by the integrations),
+<code>ACCESS_CODE</code>, <code>GEMINI_API_KEY</code>, optional <code>GEMINI_MODEL</code>.</p>
+<pre><code class="language-bash"># add or rotate secrets (stored encrypted, marked sensitive)
+vercel env add GEMINI_API_KEY production
+vercel env rm ACCESS_CODE production &amp;&amp; vercel env add ACCESS_CODE production
+vercel deploy --prod                      # env changes apply on the next deploy
+
+# local development
+npm install
+vercel env pull .env.local                # Neon + Blob credentials
+npm run dev                               # access code is off locally unless set
+set -a; source .env.local; set +a
+npx prisma db push                        # apply schema changes
+npm run seed                              # reset demo data (shared database) and print device keys
+</code></pre>
+<p>Quality gates: <code>npm test</code> (40 tests), <code>npm run typecheck</code>, <code>npm run lint</code>, <code>npm run build</code>.</p>
+<hr>
+<h2>13. Testing and verification</h2>
+<p><strong>Automated (Vitest, 40 tests):</strong> distance and vehicle planning; least-squares trend, projection and percentage change;
+NetRealise deductions and confidence downgrades; ranking; sell-vs-store verdicts; match scoring; offer/order state
+machines and lot status; quality grading and parameter validation; agreement hashing and tamper detection; Fayda maths;
+scheme rules; CSV import validation; offer expiry; rate limiting; Hindi engine output; message catalogue coverage.</p>
+<p><strong>Verified end to end in the browser and against the live deployment:</strong> access gate (pages redirect; APIs, actions and
+media return 401; wrong code rejected); full farmer → buyer → counter → accept → pickup → delivery → payment →
+grievance → admin resolution flow; partial sale and auto-closing of oversized offers; agreement tamper detection;
+disguised-file upload rejection; storage over-booking blocked server-side; IoT key hashing, validation and rate limit;
+FPO pooling and exact pro-rata payout; CSV import with row-level errors and duplicate skipping; Hindi across all pages
+for every role; AI request path confirmed against Google&#39;s API.</p>
+<hr>
+<h2>14. Limitations and roadmap</h2>
+<table>
+<thead>
+<tr>
+<th>Today</th>
+<th>Next step</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Market prices are seeded DEMO/SAMPLE data plus admin CSV imports</td>
+<td>Licensed AGMARKNET / e-NAM connectors behind the existing source registry</td>
+</tr>
+<tr>
+<td>Logistics, storage and payment are mock providers</td>
+<td>Real transporter, warehouse and payment/escrow partners behind the same order steps</td>
+</tr>
+<tr>
+<td>Demo account picker inside an access-code gate</td>
+<td>Phone OTP login, per-user sessions</td>
+</tr>
+<tr>
+<td>In-memory rate limits</td>
+<td>Shared store (Redis/Upstash)</td>
+</tr>
+<tr>
+<td>Straight-line × 1.25 distances</td>
+<td>Routing API distances and live freight quotes</td>
+</tr>
+<tr>
+<td>Trend projection is linear</td>
+<td>Seasonal models once enough real history exists; accuracy tracked</td>
+</tr>
+<tr>
+<td>Scheme rules are unverified suggestions</td>
+<td>Rules verified against official notifications, with dates</td>
+</tr>
+<tr>
+<td>Hindi interface; Marathi for AI only</td>
+<td>Full Marathi interface using the same pattern</td>
+</tr>
+</tbody></table>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "strict", flowchart: { htmlLabels: true } });
+</script>
+</body>
+</html>

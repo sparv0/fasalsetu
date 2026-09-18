@@ -1,0 +1,295 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  FARMER
+  FPO
+  BUYER
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(cuid())
+  role      Role
+  name      String
+  phone     String   @unique
+  district  String
+  state     String   @default("Maharashtra")
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // FPO membership (farmers only) and profile inputs for scheme suggestions
+  fpoId          String?
+  fpo            User?   @relation("FpoMembers", fields: [fpoId], references: [id])
+  members        User[]  @relation("FpoMembers")
+  landAcres      Float?
+  socialCategory String? // GENERAL | OBC | SC | ST
+
+  lots            Lot[]
+  poolShares      PoolContribution[]
+  storageBookings StorageBooking[]
+  devices         Device[]
+  demands         BuyerDemand[]
+  offersMade      Offer[]            @relation("BuyerOffers")
+  ordersAsBuyer   Order[]            @relation("BuyerOrders")
+  ordersAsFarmer  Order[]            @relation("FarmerOrders")
+  grievances      Grievance[]
+  auditEvents     AuditEvent[]
+}
+
+model Market {
+  id       String @id @default(cuid())
+  name     String
+  district String
+  state    String @default("Maharashtra")
+  lat      Float
+  lng      Float
+
+  prices PriceRecord[]
+}
+
+model PriceRecord {
+  id         String   @id @default(cuid())
+  marketId   String
+  market     Market   @relation(fields: [marketId], references: [id])
+  commodity  String
+  date       DateTime
+  minPrice   Float
+  modalPrice Float
+  maxPrice   Float
+  arrivalsQt Float
+  source     String   @default("DEMO/SAMPLE")
+
+  @@index([commodity, date])
+  @@index([marketId, commodity, date])
+}
+
+model StorageFacility {
+  id              String @id @default(cuid())
+  name            String
+  district        String
+  lat             Float
+  lng             Float
+  commodities     String // comma-separated
+  capacityQt      Float
+  availableQt     Float
+  costPerQtPerDay Float
+
+  bookings StorageBooking[]
+}
+
+// status: ACTIVE | CANCELLED
+model StorageBooking {
+  id           String          @id @default(cuid())
+  lotId        String
+  lot          Lot             @relation(fields: [lotId], references: [id])
+  facilityId   String
+  facility     StorageFacility @relation(fields: [facilityId], references: [id])
+  farmerId     String
+  farmer       User            @relation(fields: [farmerId], references: [id])
+  quantityQt   Float
+  days         Int
+  startDate    DateTime
+  costEstimate Float
+  status       String          @default("ACTIVE")
+  createdAt    DateTime        @default(now())
+}
+
+// status: OPEN | PARTIALLY_SOLD | SOLD | WITHDRAWN | POOLED
+model Lot {
+  id            String   @id @default(cuid())
+  farmerId      String
+  farmer        User     @relation(fields: [farmerId], references: [id])
+  commodity     String
+  quantityQt    Float
+  availableQt   Float
+  qualityGrade  String
+  qualityParams String? // JSON of measured parameters; null = self-declared grade
+  harvestDate   DateTime
+  district      String
+  status        String   @default("OPEN")
+  isPool        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  offers          Offer[]
+  orders          Order[]
+  media           LotMedia[]
+  poolParts       PoolContribution[] @relation("PoolLot")
+  contributedTo   PoolContribution?  @relation("MemberLot")
+  storageBookings StorageBooking[]
+
+  @@index([status, commodity])
+}
+
+model LotMedia {
+  id           String   @id @default(cuid())
+  lotId        String
+  lot          Lot      @relation(fields: [lotId], references: [id])
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  storedAs     String
+  aiAssessment String? // JSON from the vision model; null until analysed
+  createdAt    DateTime @default(now())
+}
+
+model PoolContribution {
+  id          String @id @default(cuid())
+  poolLotId   String
+  poolLot     Lot    @relation("PoolLot", fields: [poolLotId], references: [id])
+  memberLotId String @unique
+  memberLot   Lot    @relation("MemberLot", fields: [memberLotId], references: [id])
+  farmerId    String
+  farmer      User   @relation(fields: [farmerId], references: [id])
+  quantityQt  Float
+}
+
+model BuyerDemand {
+  id           String   @id @default(cuid())
+  buyerId      String
+  buyer        User     @relation(fields: [buyerId], references: [id])
+  commodity    String
+  quantityQt   Float
+  qualityMin   String
+  district     String
+  pricePerQt   Float
+  deliveryDays Int
+  createdAt    DateTime @default(now())
+}
+
+// status: PENDING | COUNTERED | ACCEPTED | REJECTED | WITHDRAWN | EXPIRED
+// Terms are farm-gate: the buyer arranges and pays for pickup.
+model Offer {
+  id                String   @id @default(cuid())
+  lotId             String
+  lot               Lot      @relation(fields: [lotId], references: [id])
+  buyerId           String
+  buyer             User     @relation("BuyerOffers", fields: [buyerId], references: [id])
+  pricePerQt        Float
+  counterPricePerQt Float?
+  quantityQt        Float
+  matchScore        Float
+  matchReasons      String // JSON string array
+  status            String   @default("PENDING")
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  order Order?
+
+  @@index([lotId, status])
+  @@index([buyerId, status])
+}
+
+// status: CREATED | LOGISTICS_BOOKED | IN_TRANSIT | DELIVERED | PAYMENT_INITIATED | PAID | CLOSED
+model Order {
+  id             String   @id @default(cuid())
+  offerId        String   @unique
+  offer          Offer    @relation(fields: [offerId], references: [id])
+  lotId          String
+  lot            Lot      @relation(fields: [lotId], references: [id])
+  buyerId        String
+  buyer          User     @relation("BuyerOrders", fields: [buyerId], references: [id])
+  farmerId       String
+  farmer         User     @relation("FarmerOrders", fields: [farmerId], references: [id])
+  agreedPrice    Float
+  quantityQt     Float
+  // Digital agreement: canonical JSON terms + SHA-256 fingerprint
+  agreementTerms String
+  agreementHash  String
+  status         String   @default("CREATED")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  logistics  LogisticsBooking?
+  payment    Payment?
+  grievances Grievance[]
+}
+
+// status: BOOKED | IN_TRANSIT | DELIVERED
+model LogisticsBooking {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id])
+  provider   String   @default("MOCK")
+  vehicle    String
+  trips      Int
+  distanceKm Float
+  quoteCost  Float
+  status     String   @default("BOOKED")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// status: INITIATED | COMPLETED
+model Payment {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id])
+  provider  String   @default("MOCK")
+  reference String
+  amount    Float
+  status    String   @default("INITIATED")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// status: OPEN | RESOLVED
+model Grievance {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id])
+  raisedById     String
+  raisedBy       User     @relation(fields: [raisedById], references: [id])
+  category       String
+  description    String
+  status         String   @default("OPEN")
+  resolutionNote String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  action    String
+  detail    String
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  lotId     String?
+  offerId   String?
+  orderId   String?
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([lotId])
+}
+
+model Device {
+  id        String       @id @default(cuid())
+  farmerId  String
+  farmer    User         @relation(fields: [farmerId], references: [id])
+  name      String
+  purpose   String // STORAGE | FIELD
+  keyHash   String       @unique
+  keyHint   String
+  createdAt DateTime     @default(now())
+  readings  IotReading[]
+}
+
+model IotReading {
+  id         String   @id @default(cuid())
+  deviceId   String
+  device     Device   @relation(fields: [deviceId], references: [id])
+  metric     String
+  value      Float
+  recordedAt DateTime
+
+  @@index([deviceId, metric, recordedAt])
+}
