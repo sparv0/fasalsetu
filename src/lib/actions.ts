@@ -916,3 +916,24 @@ export async function importPrices(_prev: ActionResult, formData: FormData): Pro
     return `Imported ${fresh.length} row(s). Rejected ${errors.length}, skipped ${duplicates} duplicate(s).${problems ? ` Problems — ${problems}` : ""}`;
   });
 }
+
+// ---------- Registration ----------
+
+export async function registerUser(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const role = String(formData.get("role") ?? "") as Role;
+  const district = String(formData.get("district") ?? "");
+  
+  if (!name || !phone || !role || !district) {
+    redirect("/login?error=Missing+fields");
+  }
+
+  let user = await prisma.user.findUnique({ where: { phone } });
+  if (!user) {
+    user = await prisma.user.create({ data: { name, phone, role, district } });
+  }
+
+  await setCurrentUser(user.id);
+  redirect(homePathFor(user.role));
+}
