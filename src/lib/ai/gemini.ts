@@ -86,6 +86,7 @@ async function callModel(model: string, key: string, opts: GenerateOptions, useS
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify(body),
+    cache: "no-store",
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
 }
@@ -93,16 +94,20 @@ async function callModel(model: string, key: string, opts: GenerateOptions, useS
 export async function generate(opts: GenerateOptions): Promise<string> {
   const key = apiKey();
   if (!key) throw new AiError("AI is not configured yet — add GEMINI_API_KEY to .env.");
-  let model = process.env.GEMINI_MODEL || envFromFile().model || DEFAULT_MODEL;
+  let model = discoveredModel || process.env.GEMINI_MODEL || envFromFile().model || DEFAULT_MODEL;
 
   let res: Response;
   try {
     res = await callModel(model, key, opts);
     if (res.status === 404) {
-      console.log("[ai] 404 encountered. Fetching available models for this key...");
-      const listRes = await fetch(`${API}/models?pageSize=200`, { headers: { "x-goog-api-key": key } });
-      const listData = await listRes.json();
-      console.log("[ai] Available models:", JSON.stringify(listData.models?.map((m: any) => m.name), null, 2));
+      console.log(`[ai] 404 encountered for ${model}. Fetching available models for this key...`);
+      const fallback = await pickAvailableModel(key);
+      if (fallback) {
+        console.log(`[ai] Falling back to model: ${fallback}`);
+        discoveredModel = fallback;
+        model = fallback;
+        res = await callModel(model, key, opts);
+      }
     }
   } catch (e) {
     console.error("[ai] request failed", e);
