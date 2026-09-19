@@ -78,29 +78,6 @@ export default async function LoginPage() {
           </div>
         </section>
       ))}
-      
-      <section id="create-account" className="mb-8 border-t pt-8">
-        <h2 className="font-semibold text-stone-800 mb-4">{t("Create a new demo account", "नया डेमो खाता बनाएँ")}</h2>
-        <form action={registerUser} className="space-y-3 bg-white p-5 border rounded-xl">
-          <div className="grid sm:grid-cols-2 gap-3">
-            <input name="name" type="text" required placeholder={t("Full Name", "पूरा नाम")} className="border rounded p-2 text-sm" />
-            <input name="phone" type="tel" required placeholder={t("Phone Number (10 digits)", "फ़ोन नंबर")} className="border rounded p-2 text-sm" />
-            <select name="role" required className="border rounded p-2 text-sm bg-white">
-              <option value="">{t("Select Role", "भूमिका चुनें")}</option>
-              <option value="FARMER">Farmer</option>
-              <option value="FPO">FPO</option>
-              <option value="BUYER">Buyer</option>
-            </select>
-            <select name="district" required className="border rounded p-2 text-sm bg-white">
-              <option value="">{t("Select District", "ज़िला चुनें")}</option>
-              {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
-          <button type="submit" className="w-full bg-stone-800 hover:bg-stone-900 text-white rounded p-3 font-medium transition">
-            {t("Create Account & Login", "खाता बनाएँ और लॉग इन करें")}
-          </button>
-        </form>
-      </section>
     </div>
   );
 }
