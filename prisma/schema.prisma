@@ -41,6 +41,7 @@ model User {
   ordersAsFarmer  Order[]            @relation("FarmerOrders")
   grievances      Grievance[]
   auditEvents     AuditEvent[]
+  aiConversations AiConversation[]
 }
 
 model Market {
@@ -292,4 +293,23 @@ model IotReading {
   recordedAt DateTime
 
   @@index([deviceId, metric, recordedAt])
+}
+
+model AiConversation {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  title     String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  messages  AiMessage[]
+}
+
+model AiMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  conversation   AiConversation @relation(fields: [conversationId], references: [id])
+  role           String
+  text           String
+  createdAt      DateTime       @default(now())
 }

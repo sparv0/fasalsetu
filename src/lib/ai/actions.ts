@@ -44,13 +44,14 @@ const GROUNDING =
 // ---------- Kisan Sahayak chat ----------
 
 const chatSchema = z.object({
+  conversationId: z.string().optional(),
   messages: z
     .array(z.object({ role: z.enum(["user", "model"]), text: z.string().trim().min(1).max(1500) }))
     .min(1)
     .max(20),
 });
 
-export async function askAssistant(input: { messages: { role: "user" | "model"; text: string }[] }): Promise<AiResult<string>> {
+export async function askAssistant(input: { conversationId?: string; messages: { role: "user" | "model"; text: string }[] }): Promise<AiResult<{ text: string; conversationId: string }>> {
   const parsed = chatSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: localizeMessage("Message is empty or too long (max 1500 characters).", await getLang()) };
   return guarded(async (user) => {
@@ -59,7 +60,8 @@ export async function askAssistant(input: { messages: { role: "user" | "model"; 
     const msgs = parsed.data.messages;
     const last = msgs[msgs.length - 1];
     if (last.role !== "user") throw new AiError("Ask a question first.");
-    return generate({
+    
+    const replyText = await generate({
       system:
         "You are Kisan Sahayak, the AI assistant inside FASALSETU AI, a market-linkage app for Indian farmers, FPOs and buyers. " +
         "Help the user decide where and when to sell (or buy), understand net realisation (price minus transport, market charges, storage), negotiate offers, and use the app. " +
@@ -72,7 +74,45 @@ export async function askAssistant(input: { messages: { role: "user" | "model"; 
       parts: [{ text: last.text }],
       temperature: 0.5,
     });
+
+    let cid = parsed.data.conversationId;
+    if (!cid) {
+      const conv = await prisma.aiConversation.create({
+        data: { userId: user.id, title: `Chat from ${new Date().toLocaleDateString()}` }
+      });
+      cid = conv.id;
+    }
+
+    await prisma.aiMessage.createMany({
+      data: [
+        { conversationId: cid, role: "user", text: last.text },
+        { conversationId: cid, role: "model", text: replyText }
+      ]
+    });
+
+    return { text: replyText, conversationId: cid };
   });
+}
+
+export async function getConversations() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  return prisma.aiConversation.findMany({
+    where: { userId: user.id },
+    orderBy: { updatedAt: 'desc' },
+    select: { id: true, title: true, updatedAt: true }
+  });
+}
+
+export async function getConversationMessages(id: string) {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const conv = await prisma.aiConversation.findUnique({
+    where: { id, userId: user.id },
+    include: { messages: { orderBy: { createdAt: 'asc' } } }
+  });
+  if (!conv) return null;
+  return conv.messages.map(m => ({ role: m.role as "user" | "model", text: m.text }));
 }
 
 // ---------- Explain a lot's recommendation ----------

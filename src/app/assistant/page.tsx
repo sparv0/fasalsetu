@@ -33,11 +33,14 @@ const GREETING = {
   mr: "नमस्कार! मी किसान सहायक. मला तुमचे लॉट, ऑफर आणि आजचे बाजारभाव दिसतात. कुठे विकायचे, ऑफर योग्य आहे का — लिहून किंवा 🎤 दाबून बोलून विचारा.",
 };
 
+import { getConversations } from "@/lib/ai/actions";
+
 export default async function AssistantPage() {
   const user = await requirePageUser();
   const { t, lang } = await getT();
   const enabled = aiEnabled();
   const s = SUGGESTIONS[user.role];
+  const history = await getConversations();
 
   return (
     <div className="space-y-4">
@@ -51,7 +54,7 @@ export default async function AssistantPage() {
         </p>
       </div>
       {!enabled && <AiOff />}
-      <AssistantChat enabled={enabled} suggestions={s[lang] ?? s.en} greeting={GREETING[lang]} />
+      <AssistantChat enabled={enabled} suggestions={s[lang] ?? s.en} greeting={GREETING[lang]} history={history} />
       <p className="text-xs text-stone-400">
         {t(
           "Answers are AI-generated (Google Gemini) from DEMO/SAMPLE market data and your account. Double-check numbers on the lot page before acting.",
