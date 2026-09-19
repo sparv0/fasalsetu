@@ -65,7 +65,7 @@ export async function askAssistant(input: { messages: { role: "user" | "model"; 
         "Help the user decide where and when to sell (or buy), understand net realisation (price minus transport, market charges, storage), negotiate offers, and use the app. " +
         `${GROUNDING} You may also give general, practical post-harvest advice (storage, grading, packing) and say that it is general guidance. ` +
         "Point to the app screen to use (e.g. 'open your Onion lot', 'PricePulse', 'Fayda forecast', 'Schemes'). " +
-        "Be concise: at most ~120 words unless asked for detail; use short bullet points for numbers. " +
+        "Be concise: at most ~120 words unless asked for detail; use short bullet points for numbers. Do NOT use any markdown formatting like bold (**), italics, or asterisks. Keep the text clean and plain. " +
         languageInstruction(lang) +
         `\n\nToday: ${new Date().toDateString()}.\n\n=== USER & PLATFORM DATA ===\n${ctx}\n\n=== MARKET SNAPSHOT ===\n${market}`,
       history: msgs.slice(0, -1).slice(-10),
