@@ -93,17 +93,16 @@ async function callModel(model: string, key: string, opts: GenerateOptions, useS
 export async function generate(opts: GenerateOptions): Promise<string> {
   const key = apiKey();
   if (!key) throw new AiError("AI is not configured yet — add GEMINI_API_KEY to .env.");
-  let model = discoveredModel ?? (process.env.GEMINI_MODEL || envFromFile().model || DEFAULT_MODEL);
+  let model = process.env.GEMINI_MODEL || envFromFile().model || DEFAULT_MODEL;
 
   let res: Response;
   try {
     res = await callModel(model, key, opts);
-    if (res.status === 404 && !discoveredModel) {
-      const alt = await pickAvailableModel(key);
-      if (alt && alt !== model) {
-        discoveredModel = model = alt;
-        res = await callModel(model, key, opts);
-      }
+    if (res.status === 404) {
+      console.log("[ai] 404 encountered. Fetching available models for this key...");
+      const listRes = await fetch(`${API}/models?pageSize=200`, { headers: { "x-goog-api-key": key } });
+      const listData = await listRes.json();
+      console.log("[ai] Available models:", JSON.stringify(listData.models?.map((m: any) => m.name), null, 2));
     }
   } catch (e) {
     console.error("[ai] request failed", e);
