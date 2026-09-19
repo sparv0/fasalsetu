@@ -4,6 +4,8 @@ import { logout } from "@/lib/actions";
 import { homePathFor } from "@/lib/session";
 import { makeT, roleName, type UiLang } from "@/lib/i18n";
 import LanguageToggle from "./ai/LanguageToggle";
+import LoginModal from "./LoginModal";
+import { DISTRICTS } from "@/lib/engine/config";
 
 export default function Nav({ user, lang }: { user: User | null; lang: UiLang }) {
   const t = makeT(lang);
@@ -59,14 +61,7 @@ export default function Nav({ user, lang }: { user: User | null; lang: UiLang })
               </form>
             </>
           ) : (
-            <div className="flex gap-2">
-              <Link href="/login" className="bg-emerald-800 hover:bg-emerald-700 px-3 py-1 rounded text-xs">
-                {t("Log in", "लॉग इन")}
-              </Link>
-              <Link href="/login#create-account" className="bg-emerald-600 hover:bg-emerald-500 px-3 py-1 rounded text-xs font-medium">
-                {t("Create Account", "खाता बनाएँ")}
-              </Link>
-            </div>
+            <LoginModal districts={[...DISTRICTS]} />
           )}
         </div>
       </div>

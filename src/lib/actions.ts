@@ -937,3 +937,15 @@ export async function registerUser(formData: FormData) {
   await setCurrentUser(user.id);
   redirect(homePathFor(user.role));
 }
+
+export async function loginWithPhone(formData: FormData) {
+  const phone = String(formData.get("phone") ?? "").trim();
+  const user = await prisma.user.findUnique({ where: { phone } });
+  
+  if (!user) {
+    redirect("/login?error=User+not+found");
+  }
+
+  await setCurrentUser(user.id);
+  redirect(homePathFor(user.role));
+}
