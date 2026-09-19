@@ -108,12 +108,14 @@ export function MicButton({ onText, className = "" }: { onText: (text: string) =
               .trim();
             if (text) onText(text);
           };
-          r.onerror = (e) =>
+          r.onerror = (e) => {
+            console.error("Speech recognition error:", e.error);
             setError(
               e.error === "not-allowed"
                 ? t("Microphone permission denied.", "माइक्रोफ़ोन की अनुमति नहीं मिली।")
-                : t("Couldn't hear that — try again.", "सुनाई नहीं दिया — फिर से बोलें।")
+                : `${t("Couldn't hear that — try again.", "सुनाई नहीं दिया — फिर से बोलें।")} [${e.error}]`
             );
+          };
           r.onend = () => setListening(false);
           rec.current = r;
           setError(null);
