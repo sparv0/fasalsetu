@@ -79,7 +79,7 @@ export default async function LoginPage() {
         </section>
       ))}
       
-      <section className="mb-8 border-t pt-8">
+      <section id="create-account" className="mb-8 border-t pt-8">
         <h2 className="font-semibold text-stone-800 mb-4">{t("Create a new demo account", "नया डेमो खाता बनाएँ")}</h2>
         <form action={registerUser} className="space-y-3 bg-white p-5 border rounded-xl">
           <div className="grid sm:grid-cols-2 gap-3">

@@ -59,9 +59,14 @@ export default function Nav({ user, lang }: { user: User | null; lang: UiLang })
               </form>
             </>
           ) : (
-            <Link href="/login" className="bg-emerald-800 px-3 py-1 rounded text-xs">
-              {t("Log in", "लॉग इन")}
-            </Link>
+            <div className="flex gap-2">
+              <Link href="/login" className="bg-emerald-800 hover:bg-emerald-700 px-3 py-1 rounded text-xs">
+                {t("Log in", "लॉग इन")}
+              </Link>
+              <Link href="/login#create-account" className="bg-emerald-600 hover:bg-emerald-500 px-3 py-1 rounded text-xs font-medium">
+                {t("Create Account", "खाता बनाएँ")}
+              </Link>
+            </div>
           )}
         </div>
       </div>
