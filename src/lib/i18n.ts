@@ -1,11 +1,17 @@
+import { MARATHI_DICT } from "./marathi";
+
 // UI localisation. Strings are written inline as t("English", "हिंदी") so each screen stays readable
 // in one place. Hindi is fully translated; Marathi currently localises AI answers only and falls back
-// to English for the interface.
+// to English for the interface, EXCEPT for key UI strings now backed by MARATHI_DICT.
 export type UiLang = "en" | "hi" | "mr";
 export type T = (en: string, hi: string) => string;
 
 export function makeT(lang: UiLang): T {
-  return (en, hi) => (lang === "hi" ? hi : en);
+  return (en, hi) => {
+    if (lang === "hi") return hi;
+    if (lang === "mr") return MARATHI_DICT[en] || en;
+    return en;
+  };
 }
 
 export function locale(lang: UiLang): string {
